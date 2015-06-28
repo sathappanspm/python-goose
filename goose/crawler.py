@@ -137,10 +137,11 @@ class Crawler(object):
 
         # meta
         metas = self.metas_extractor.extract()
+        self.article.metas = metas
         self.article.meta_lang = metas['lang']
         self.article.meta_favicon = metas['favicon']
-        self.article.meta_description = metas['description']
-        self.article.meta_keywords = metas['keywords']
+        self.article.meta_description = metas.get('description', "")
+        self.article.meta_keywords = metas.get('keywords', "")
         self.article.canonical_link = metas['canonical']
         self.article.domain = metas['domain']
 
@@ -216,7 +217,7 @@ class Crawler(object):
         self.article.additional_data.update({
             'request': self.htmlfetcher.request,
             'result': self.htmlfetcher.result,
-            })
+        })
         return html
 
     def get_metas_extractor(self):

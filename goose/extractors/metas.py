@@ -125,11 +125,29 @@ class MetasExtractor(BaseExtractor):
         return self.get_meta_content("meta[name=keywords]")
 
     def extract(self):
-        return {
-            "description": self.get_meta_description(),
-            "keywords": self.get_meta_keywords(),
-            "lang": self.get_meta_lang(),
-            "favicon": self.get_favicon(),
-            "canonical": self.get_canonical_link(),
-            "domain": self.get_domain()
-        }
+        """
+        Extract all meta content
+        """
+        metas = self.parser.getElementsByTag(self.article.doc, 'meta')
+        metadict = {}
+        metadict['lang'] = self.get_meta_lang()
+        metadict['favicon'] = self.get_favicon()
+        metadict['canonical'] = self.get_canonical_link()
+        metadict['domain'] = self.get_domain()
+        for m in metas:
+            attr = m.attrib
+            if attr is not None:
+                metatype = ('name' if 'name' in attr else
+                            ('property' if 'property' in attr else None)
+                            )
+                if metatype is not None:
+                    if metatype not in metadict:
+                        metadict[metatype] = {}
+                    meta_origin, meta_feature = re.split(":|\.", attr['metatype'], 1)
+                    if meta_feature is None:
+                        metadict[metatype][meta_origin] = attr.get("content", "")
+                    else:
+                        if meta_origin not in metadict[metatype]:
+                            metadict[metatype][meta_origin] = {}
+                        metadict[metatype][meta_origin][meta_feature] = attr.get("content", "")
+        return metadict
