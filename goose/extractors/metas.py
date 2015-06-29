@@ -143,10 +143,11 @@ class MetasExtractor(BaseExtractor):
                 if metatype is not None:
                     if metatype not in metadict:
                         metadict[metatype] = {}
-                    meta_origin, meta_feature = re.split(":|\.", attr['metatype'], 1)
-                    if meta_feature is None:
-                        metadict[metatype][meta_origin] = attr.get("content", "")
+                    metasplits = re.split(":|\.", attr[metatype], 1)
+                    if len(metasplits) == 1:
+                        metadict[metatype][metasplits[0]] = attr.get("content", "")
                     else:
+                        meta_origin, meta_feature = metasplits
                         if meta_origin not in metadict[metatype]:
                             metadict[metatype][meta_origin] = {}
                         metadict[metatype][meta_origin][meta_feature] = attr.get("content", "")
