@@ -29,14 +29,25 @@ class TweetsExtractor(BaseExtractor):
     def extract(self):
         tweets = []
         items = self.parser.getElementsByTag(
-                        self.article.top_node,
-                        tag='blockquote',
-                        attr="class",
-                        value="twitter-tweet")
+            self.article.top_node,
+            tag='blockquote'
+        )
+        tweets = []
+        for b in items:
+            bclass = b.attrib.get('class', '')
+            if "tweet" in bclass or 'twitter' in bclass:
+                msg = {'html_block': b.__str__()}
 
-        for i in items:
-            for attr in ['gravityScore', 'gravityNodes']:
-                self.parser.delAttribute(i, attr)
-            tweets.append(self.parser.nodeToString(i))
+                if 'data-tweet-id' in b.attrib:
+                    msg['tweet-id'] = b.attrib['data-tweet-id']
 
+                tweet_links = {mention.text: mention.attrib['href'] for mention
+                               in b.xpath('descendant::a')}
+                if "cite" in b.attrib:
+                    msg['cite'] = [b.attrib['cite']]
+                else:
+                    msg['cite'] = [t for t in tweet_links.values() if '/status/' in t]
+
+                msg['tweet-link'] = tweet_links
+                tweets.append(msg)
         return tweets
