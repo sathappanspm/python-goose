@@ -27,8 +27,9 @@ from goose.extractors import BaseExtractor
 
 KNOWN_ARTICLE_CONTENT_TAGS = [
     {'attr': 'itemprop', 'value': 'articleBody'},
-    {'attr': 'class', 'value': '(entry|post)(-)?content'},
-    {'attr': 'id', 'value': 'mainentrycontent'},
+    {'attr': 'class', 'value': 'WebText|article-body-standard-section'},
+    {'attr': 'class', 'value': '(entry|post)(-)?content|contenido*'},
+    {'attr': 'id', 'value': 'mainentrycontent|content-body.*'},
     {'tag': 'article'},
 ]
 
@@ -53,6 +54,9 @@ class ContentExtractor(BaseExtractor):
                             self.article.doc,
                             **item)
             if len(nodes):
+                if('style' in nodes[0].attrib and
+                   nodes[0].attrib['style'] == 'display:none'):
+                    continue
                 return nodes[0]
         return None
 
@@ -74,13 +78,15 @@ class ContentExtractor(BaseExtractor):
         doc = self.article.doc
         top_node = None
         nodes_to_check = self.nodes_to_check(doc)
-
+        if nodes_to_check == []:
+            kt = self.get_known_article_tags()
+            if kt is not None and kt.tag == 'p':
+                nodes_to_check = [kt]
         starting_boost = float(1.0)
         cnt = 0
         i = 0
         parent_nodes = []
         nodes_with_text = []
-
         for node in nodes_to_check:
             text_node = self.parser.getText(node)
             word_stats = self.stopwords_class(language=self.get_language()).get_stopword_count(text_node)
