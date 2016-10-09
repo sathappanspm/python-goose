@@ -22,6 +22,7 @@ limitations under the License.
 """
 from HTMLParser import HTMLParser
 from goose.text import innerTrim
+import goose.text
 
 
 class OutputFormatter(object):
@@ -37,22 +38,14 @@ class OutputFormatter(object):
         self.parser = self.config.get_parser()
 
         # stopwords class
-        self.stopwords_class = config.stopwords_class
-
+        self.default_stopwords_class = config.stopwords_class
+        self.stopwords_class = {
+            'zh': goose.text.StopWordsChinese(),
+            'ar': goose.text.StopWordsArabic(),
+            'ko': goose.text.StopWordsKorean()
+        }
         # top node
         self.top_node = None
-
-    def get_language(self):
-        """\
-        Returns the language is by the article or
-        the configuration language
-        """
-        # we don't want to force the target language
-        # so we use the article.meta_lang
-        if self.config.use_meta_language:
-            if self.article.meta_lang:
-                return self.article.meta_lang[:2]
-        return self.config.target_language
 
     def get_top_node(self):
         return self.top_node
@@ -93,7 +86,8 @@ class OutputFormatter(object):
         that have a negative gravity score,
         let's give em the boot
         """
-        gravity_items = self.parser.css_select(self.top_node, "*[gravityScore]")
+        gravity_items = self.parser.css_select(self.top_node,
+                                               "*[gravityScore]")
         for item in gravity_items:
             score = self.parser.getAttribute(item, 'gravityScore')
             score = int(score, 0)
@@ -108,7 +102,8 @@ class OutputFormatter(object):
         with whatever text is inside them
         code : http://lxml.de/api/lxml.etree-module.html#strip_tags
         """
-        self.parser.stripTags(self.get_top_node(), 'b', 'strong', 'i', 'br', 'sup')
+        self.parser.stripTags(self.get_top_node(), 'b', 'strong',
+                              'i', 'br', 'sup')
 
     def remove_fewwords_paragraphs(self):
         """\
@@ -120,10 +115,10 @@ class OutputFormatter(object):
         for el in all_nodes:
             tag = self.parser.getTag(el)
             text = self.parser.getText(el)
-            stop_words = self.stopwords_class(language=self.get_language()).get_stopword_count(text)
-            if (tag != 'br' or text != '\\r') and stop_words.get_stopword_count() < 3 \
-                and len(self.parser.getElementsByTag(el, tag='object')) == 0 \
-                and len(self.parser.getElementsByTag(el, tag='embed')) == 0:
+            stop_words = self.config.get_stopwords_class(self.article).get_stopword_count(text)
+            if ((tag != 'br' or text != '\\r') and stop_words.get_stopword_count() < 3
+               and len(self.parser.getElementsByTag(el, tag='object')) == 0
+               and len(self.parser.getElementsByTag(el, tag='embed')) == 0):
                 self.parser.remove(el)
             # TODO
             # check if it is in the right place

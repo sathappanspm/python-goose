@@ -22,7 +22,7 @@ limitations under the License.
 """
 import os
 import tempfile
-from goose.text import StopWords
+from goose.text import StopWords, StopWordsChinese, StopWordsKorean, StopWordsArabic
 from goose.parsers import Parser
 from goose.parsers import ParserSoup
 from goose.version import __version__
@@ -54,6 +54,12 @@ class Configuration(object):
         # find meta language and use the correct stopwords dictionary
         self.use_meta_language = True
 
+        # set this variable to false if you want to use article language
+        # when meta_language is not available. The language is guessed based on
+        # the contents in some well-known html tags that are known to contain
+        # the article body
+        self.guess_language = True
+
         # default language
         # it will be use as fallback
         # if use_meta_language is set to false, targetlanguage will
@@ -61,8 +67,16 @@ class Configuration(object):
         self.target_language = 'en'
 
         # defautl stopwrods class
+        self.default_stopwords_class = StopWords
+        # For purposes of allowing codes based on grangier/python-goose to work
+        # we also define stopwords_class
         self.stopwords_class = StopWords
 
+        self.stopwordsClasses = {
+            'zh': StopWordsChinese(),
+            'ar': StopWordsArabic(),
+            'ko': StopWordsKorean()
+        }
         # path to your imagemagick convert executable,
         # on the mac using mac ports this is the default listed
         self.imagemagick_convert_path = "/opt/local/bin/convert"
@@ -113,3 +127,20 @@ class Configuration(object):
         if not extractor:
             raise ValueError("extractor must not be null!")
         self.additional_data_extractor = extractor
+
+    def get_language(self, article):
+        """\
+        Returns the language is by the article or
+        the configuration language
+        """
+        # we don't want to force the target language
+        # so we use the article.meta_lang
+        if self.use_meta_language:
+            if article.meta_lang:
+                return article.meta_lang[:2]
+        return self.config.target_language
+
+    def get_stopwords_class(self, article):
+        lang = self.get_language(article)
+        return self.stopwordsClasses.get(lang,
+                                         self.stopwords_class(language=lang))

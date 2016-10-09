@@ -20,16 +20,16 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-
-import re
+from pycountry import languages
+# import re
 from urlparse import urljoin
 from urlparse import urlparse
 
 from goose.extractors import BaseExtractor
+import re
 
-
-RE_LANG = r'^[A-Za-z]{2}$'
-
+# RE_LANG = r'^[A-Za-z]{2}$'
+RSPLIT = re.compile(r':|\.')
 
 class MetasExtractor(BaseExtractor):
 
@@ -78,7 +78,7 @@ class MetasExtractor(BaseExtractor):
         """
         # we have a lang attribute in html
         attr = self.parser.getAttribute(self.article.doc, attr='lang')
-        if attr is None:
+        if attr is None or attr == 'en':
             # look up for a Content-Language in meta
             items = [
                 {'tag': 'meta', 'attr': 'http-equiv', 'value': 'content-language'},
@@ -91,9 +91,15 @@ class MetasExtractor(BaseExtractor):
                     break
 
         if attr:
-            value = attr[:2]
-            if re.search(RE_LANG, value):
-                return value.lower()
+            value = attr.split("-", 1)[0]
+            if len(value) > 2:
+                try:
+                    value = languages.get(name=value).iso639_1_code
+                except KeyError:
+                    value = None
+
+            # if re.search(RE_LANG, value):
+            return value.lower()
 
         return None
 
@@ -143,7 +149,7 @@ class MetasExtractor(BaseExtractor):
                 if metatype is not None:
                     if metatype not in metadict:
                         metadict[metatype] = {}
-                    metasplits = re.split(":|\.", attr[metatype], 1)
+                    metasplits = RSPLIT.split(attr[metatype], 1)
                     if len(metasplits) == 1:
                         metadict[metatype][metasplits[0]] = attr.get("content", "")
                     else:

@@ -22,6 +22,8 @@ limitations under the License.
 """
 import os
 import glob
+import ipdb
+from langdetect import detect as detect_lang
 from copy import deepcopy
 from goose.article import Article
 from goose.utils import URLHelper, RawHelper
@@ -140,8 +142,8 @@ class Crawler(object):
         self.article.metas = metas
         self.article.meta_lang = metas['lang']
         self.article.meta_favicon = metas['favicon']
-        self.article.meta_description = metas.get('name', {}).get('description', "")
-        self.article.meta_keywords = metas.get('keywords', "")
+        self.article.meta_description = metas.get('name', {}).get('description', '')
+        self.article.meta_keywords = metas.get('name', {}).get('keywords', '')
         self.article.canonical_link = metas['canonical']
         self.article.domain = metas['domain']
 
@@ -164,13 +166,49 @@ class Crawler(object):
         # before we do any calcs on the body itself let's clean up the document
         self.article.doc = self.cleaner.clean()
 
+        preliminaryText = ' '.join([tvar.strip() for tvar in
+                                    self.article.doc.xpath("descendant-or-self::text()")])
+
+        finalText = self.get_articleBody_info().strip()
+
+        # if final content extracted is null as opposed to the preliminary
+        # extraction then possibly the language extracted is wrong, then
+        # if config.guess_language is True, try to guess language from
+        # preliminary extraction
+        if(finalText == '' and preliminaryText != '' and
+           self.config.guess_language is True):
+            det_lang = self.guess_language(preliminaryText)
+            if det_lang is not None and det_lang != self.article.meta_lang:
+                # repeat previous 3 steps after resetting article doc with
+                # article raw_doc
+                self.article.meta_lang = det_lang
+                self.article.doc = self.article.raw_doc
+                article_body = self.extractor.get_known_article_tags()
+                if article_body is not None:
+                    self.article.doc = article_body
+
+                self.article.doc = self.cleaner.clean()
+                finalText = self.get_articleBody_info().strip()
+
+        # cleanup tmp file
+        self.relase_resources()
+
+        # return the article
+        return self.article
+
+    def guess_language(self, txt):
+        try:
+            return detect_lang(txt)
+        except:
+            return None
+
+    def get_articleBody_info(self):
         # big stuff
         self.article.top_node = self.extractor.calculate_best_node()
 
         # if we have a top node
         # let's process it
         if self.article.top_node is not None:
-
             # article links
             self.article.links = self.links_extractor.extract()
 
@@ -190,21 +228,19 @@ class Crawler(object):
             # clean_text
             self.article.cleaned_text = self.formatter.get_formatted_text()
 
-        # cleanup tmp file
-        self.relase_resources()
-
-        # return the article
-        return self.article
+        return self.article.cleaned_text
 
     def get_parse_candidate(self, crawl_candidate):
         if crawl_candidate.raw_html:
-            return RawHelper.get_parsing_candidate(crawl_candidate.url, crawl_candidate.raw_html)
+            return RawHelper.get_parsing_candidate(crawl_candidate.url,
+                                                   crawl_candidate.raw_html)
         return URLHelper.get_parsing_candidate(crawl_candidate.url)
 
     def get_image(self):
         doc = self.article.raw_doc
         top_node = self.article.top_node
-        self.article.top_image = self.image_extractor.get_best_image(doc, top_node)
+        self.article.top_image = self.image_extractor.get_best_image(doc,
+                                                                     top_node)
 
     def get_html(self, crawl_candidate, parsing_candidate):
         # we got a raw_tml
@@ -264,7 +300,8 @@ class Crawler(object):
         return StandardContentExtractor(self.config, self.article)
 
     def relase_resources(self):
-        path = os.path.join(self.config.local_storage_path, '%s_*' % self.article.link_hash)
+        path = os.path.join(self.config.local_storage_path,
+                            '%s_*' % self.article.link_hash)
         for fname in glob.glob(path):
             try:
                 os.remove(fname)

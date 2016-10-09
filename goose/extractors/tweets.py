@@ -29,10 +29,16 @@ class TweetsExtractor(BaseExtractor):
     def extract(self):
         tweets = []
         items = self.parser.getElementsByTag(
-            self.article.top_node,
-            tag='blockquote'
-        )
-        tweets = []
+                        self.article.top_node,
+                        tag='blockquote')
+                        # attr="class",
+                        # value="twitter-tweet")
+
+        # for i in items:
+        #     for attr in ['gravityScore', 'gravityNodes']:
+        #         self.parser.delAttribute(i, attr)
+        #     tweets.append(self.parser.nodeToString(i))
+
         for b in items:
             bclass = b.attrib.get('class', '')
             if "tweet" in bclass or 'twitter' in bclass:
@@ -50,4 +56,5 @@ class TweetsExtractor(BaseExtractor):
 
                 msg['tweet-link'] = tweet_links
                 tweets.append(msg)
+
         return tweets

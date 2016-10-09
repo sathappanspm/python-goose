@@ -30,7 +30,7 @@ KNOWN_ARTICLE_CONTENT_TAGS = [
     {'attr': 'class', 'value': 'WebText|article-body-standard-section'},
     {'attr': 'class', 'value': '(entry|post)(-)?content|contenido*'},
     {'attr': 'id', 'value': 'mainentrycontent|content-body.*'},
-    {'tag': 'article'},
+    {'tag': 'article'}
 ]
 
 
@@ -50,21 +50,23 @@ class ContentExtractor(BaseExtractor):
 
     def get_known_article_tags(self):
         for item in KNOWN_ARTICLE_CONTENT_TAGS:
-            nodes = self.parser.getElementsByTag(
-                            self.article.doc,
-                            **item)
+            nodes = self.parser.getElementsByTag(self.article.doc,
+                                                 **item)
             if len(nodes):
                 if('style' in nodes[0].attrib and
                    nodes[0].attrib['style'] == 'display:none'):
                     continue
+
                 return nodes[0]
+
         return None
 
     def is_articlebody(self, node):
         for item in KNOWN_ARTICLE_CONTENT_TAGS:
             # attribute
             if "attr" in item and "value" in item:
-                if self.parser.getAttribute(node, item['attr']) == item['value']:
+                if self.parser.getAttribute(node,
+                                            item['attr']) == item['value']:
                     return True
             # tag
             if "tag" in item:
@@ -78,10 +80,12 @@ class ContentExtractor(BaseExtractor):
         doc = self.article.doc
         top_node = None
         nodes_to_check = self.nodes_to_check(doc)
+
         if nodes_to_check == []:
             kt = self.get_known_article_tags()
             if kt is not None and kt.tag == 'p':
                 nodes_to_check = [kt]
+
         starting_boost = float(1.0)
         cnt = 0
         i = 0
@@ -89,7 +93,8 @@ class ContentExtractor(BaseExtractor):
         nodes_with_text = []
         for node in nodes_to_check:
             text_node = self.parser.getText(node)
-            word_stats = self.stopwords_class(language=self.get_language()).get_stopword_count(text_node)
+            # word_stats = self.stopwords_class(language=self.get_language()).get_stopword_count(text_node)
+            word_stats = self.config.get_stopwords_class(self.article).get_stopword_count(text_node)
             high_link_density = self.is_highlink_density(node)
             if word_stats.get_stopword_count() > 2 and not high_link_density:
                 nodes_with_text.append(node)
@@ -115,7 +120,8 @@ class ContentExtractor(BaseExtractor):
                         boost_score = float(5)
 
             text_node = self.parser.getText(node)
-            word_stats = self.stopwords_class(language=self.get_language()).get_stopword_count(text_node)
+            # word_stats = self.stopwords_class(language=self.get_language()).get_stopword_count(text_node)
+            word_stats = self.config.get_stopwords_class(self.article).get_stopword_count(text_node)
             upscore = int(word_stats.get_stopword_count() + boost_score)
 
             # parent node
@@ -171,7 +177,8 @@ class ContentExtractor(BaseExtractor):
                 if steps_away >= max_stepsaway_from_node:
                     return False
                 paraText = self.parser.getText(current_node)
-                word_stats = self.stopwords_class(language=self.get_language()).get_stopword_count(paraText)
+                # word_stats = self.stopwords_class(language=self.get_language()).get_stopword_count(paraText)
+                word_stats = self.config.get_stopwords_class(self.article).get_stopword_count(paraText)
                 if word_stats.get_stopword_count() > minimum_stopword_count:
                     return True
                 steps_away += 1
@@ -218,7 +225,8 @@ class ContentExtractor(BaseExtractor):
                 for first_paragraph in potential_paragraphs:
                     text = self.parser.getText(first_paragraph)
                     if len(text) > 0:
-                        word_stats = self.stopwords_class(language=self.get_language()).get_stopword_count(text)
+                        # word_stats = self.stopwords_class(language=self.get_language()).get_stopword_count(text)
+                        word_stats = self.config.get_stopwords_class(self.article).get_stopword_count(text)
                         paragraph_score = word_stats.get_stopword_count()
                         sibling_baseline_score = float(.30)
                         high_link_density = self.is_highlink_density(first_paragraph)
@@ -245,7 +253,8 @@ class ContentExtractor(BaseExtractor):
 
         for node in nodes_to_check:
             text_node = self.parser.getText(node)
-            word_stats = self.stopwords_class(language=self.get_language()).get_stopword_count(text_node)
+            # word_stats = self.stopwords_class(language=self.get_language()).get_stopword_count(text_node)
+            word_stats = self.config.get_stopwords_class(self.article).get_stopword_count(text_node)
             high_link_density = self.is_highlink_density(node)
             if word_stats.get_stopword_count() > 2 and not high_link_density:
                 paragraphs_number += 1
@@ -365,9 +374,9 @@ class ContentExtractor(BaseExtractor):
         for e in self.parser.getChildren(node):
             e_tag = self.parser.getTag(e)
             if e_tag != 'p':
-                if self.is_highlink_density(e) \
-                    or self.is_table_and_no_para_exist(e) \
-                    or not self.is_nodescore_threshold_met(node, e):
+                if(self.is_highlink_density(e)
+                   or self.is_table_and_no_para_exist(e)
+                   or not self.is_nodescore_threshold_met(node, e)):
                     self.parser.remove(e)
         return node
 

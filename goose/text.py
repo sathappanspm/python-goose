@@ -86,8 +86,8 @@ class WordStats(object):
 
 class StopWords(object):
 
-    PUNCTUATION = re.compile("[^\\p{Ll}\\p{Lu}\\p{Lt}\\p{Lo}\\p{Nd}\\p{Pc}\\s]")
-    TRANS_TABLE = string.maketrans('', '')
+    # PUNCTUATION = re.compile("[^\\p{Ll}\\p{Lu}\\p{Lt}\\p{Lo}\\p{Nd}\\p{Pc}\\s]")
+    # TRANS_TABLE = string.maketrans('', '')
     _cached_stop_words = {}
 
     def __init__(self, language='en'):
@@ -108,9 +108,10 @@ class StopWords(object):
         # http://stackoverflow.com/questions/265960/best-way-to-strip-punctuation-from-a-string-in-python
         if isinstance(content, unicode):
             content = content.encode('utf-8')
-        return content.translate(self.TRANS_TABLE, string.punctuation)
+        # return content.translate(self.TRANS_TABLE, string.punctuation)
+        return content.translate(None, string.punctuation)
 
-    def candiate_words(self, stripped_input):
+    def candidate_words(self, stripped_input):
         return stripped_input.split(' ')
 
     def get_stopword_count(self, content):
@@ -118,15 +119,15 @@ class StopWords(object):
             return WordStats()
         ws = WordStats()
         stripped_input = self.remove_punctuation(content)
-        candiate_words = self.candiate_words(stripped_input)
-        overlapping_stopwords = []
-        c = 0
-        for w in candiate_words:
-            c += 1
-            if w.lower() in self.STOP_WORDS:
-                overlapping_stopwords.append(w.lower())
+        candidate_words = self.candidate_words(stripped_input.lower())
+        overlapping_stopwords = [w for w in candidate_words if w in self.STOP_WORDS]
+        # c = 0
+        # for w in candidate_words:
+        #     c += 1
+        #     if w in self.STOP_WORDS:
+        #         overlapping_stopwords.append(w)
 
-        ws.set_word_count(c)
+        ws.set_word_count(len(candidate_words))
         ws.set_stopword_count(len(overlapping_stopwords))
         ws.set_stop_words(overlapping_stopwords)
         return ws
@@ -140,7 +141,7 @@ class StopWordsChinese(StopWords):
         # force zh languahe code
         super(StopWordsChinese, self).__init__(language='zh')
 
-    def candiate_words(self, stripped_input):
+    def candidate_words(self, stripped_input):
         # jieba build a tree that takes sometime
         # avoid building the tree if we don't use
         # chinese language
@@ -159,12 +160,12 @@ class StopWordsArabic(StopWords):
     def remove_punctuation(self, content):
         return content
 
-    def candiate_words(self, stripped_input):
+    def candidate_words(self, stripped_input):
         import nltk
         s = nltk.stem.isri.ISRIStemmer()
-        words = []
-        for word in nltk.tokenize.wordpunct_tokenize(stripped_input):
-            words.append(s.stem(word))
+        words = [s.stem(word) for word in nltk.tokenize.wordpunct_tokenize(stripped_input)]
+        # for word in nltk.tokenize.wordpunct_tokenize(stripped_input):
+        #     words.append(s.stem(word))
         return words
 
 
@@ -180,15 +181,15 @@ class StopWordsKorean(StopWords):
             return WordStats()
         ws = WordStats()
         stripped_input = self.remove_punctuation(content)
-        candiate_words = self.candiate_words(stripped_input)
-        overlapping_stopwords = []
-        c = 0
-        for w in candiate_words:
-            c += 1
-            for stop_word in self.STOP_WORDS:
-                overlapping_stopwords.append(stop_word)
+        candidate_words = self.candidate_words(stripped_input)
+        overlapping_stopwords = [w for w in candidate_words if w in self.STOP_WORDS]
+        # c = 0
+        # for w in candidate_words:
+        #     c += 1
+        #     for stop_word in self.STOP_WORDS:
+        #         overlapping_stopwords.append(stop_word)
 
-        ws.set_word_count(c)
+        ws.set_word_count(len(candidate_words))
         ws.set_stopword_count(len(overlapping_stopwords))
         ws.set_stop_words(overlapping_stopwords)
         return ws
