@@ -4,3 +4,5 @@ cssselect
 jieba
 beautifulsoup
 nltk
+langdetect
+pycountry
