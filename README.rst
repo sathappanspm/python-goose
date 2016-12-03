@@ -1,3 +1,11 @@
+Changelog from grangier/python-goose
+------------------------------
+
+- Automatic identification of language using langdetect
+- corrected extraction for certain types of newspaper links 
+- changed output format for meta tags
+
+
 Python-Goose - Article Extractor |Build Status|
 ===============================================
 
