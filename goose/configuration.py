@@ -138,7 +138,7 @@ class Configuration(object):
         if self.use_meta_language:
             if article.meta_lang:
                 return article.meta_lang[:2]
-        return self.config.target_language
+        return self.target_language
 
     def get_stopwords_class(self, article):
         lang = self.get_language(article)
