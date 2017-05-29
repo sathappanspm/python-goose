@@ -22,7 +22,7 @@ limitations under the License.
 """
 import os
 import glob
-import ipdb
+#import ipdb
 from langdetect import detect as detect_lang
 from copy import deepcopy
 from goose.article import Article
